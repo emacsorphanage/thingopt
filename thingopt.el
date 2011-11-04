@@ -23,6 +23,16 @@
 ;; TODO documentation
 ;; TODO forward-string by syntax (?)
 
+;;; Commands:
+;;
+;; Below are complete command list:
+;;
+;;
+;;; Customizable Options:
+;;
+;; Below are customizable option list:
+;;
+
 ;;; Code:
 
 (eval-when-compile
@@ -35,6 +45,7 @@
 (defvar upward-mark-thing-list '(string symbol (up-list . *)))
 (defvar upward-mark-thing-trial 0)
 (defvar upward-mark-thing-original-position)
+(defvar last-marked-bounds nil)
 
 (defun thingp (thing)
   (or (get thing 'bounds-of-thing-at-point)
@@ -89,17 +100,18 @@
 ;;;###autoload
 (defun upward-mark-thing ()
   (interactive)
-  (if (not (eq last-command this-command))
+  (if (or  (not (eq last-command this-command))
+           (and (eq last-command this-command) (not mark-active)))
       (setq upward-mark-thing-index 0
             upward-mark-thing-trial 0
             upward-mark-thing-original-position (point)))
   (let ((index upward-mark-thing-index)
         (length (length upward-mark-thing-list))
         bounds)
-    (while (and (null bounds)
-                (< index length))
-      (let ((thing (nth index upward-mark-thing-list))
-            (limit '*))
+    (let ( thing (limit '*))
+      (while (and (null bounds)
+                  (< index length))
+        (setq thing (nth index upward-mark-thing-list))
         (if (consp thing)
             (setq limit (cdr thing)
                   thing (car thing)))
@@ -107,6 +119,7 @@
         (when (or (null bounds)
                   (and (not (eq limit '*)) (>= upward-mark-thing-trial limit))
                   (eq (car bounds) (cdr bounds))
+                  (and bounds last-marked-bounds (equal last-marked-bounds bounds))
                   (and mark-active
                        (eq (car bounds) (point))
                        (eq (cdr bounds) (mark))))
@@ -114,8 +127,10 @@
                 index (1+ index)
                 upward-mark-thing-index (1+ upward-mark-thing-index)
                 upward-mark-thing-trial 0)
-          (goto-char upward-mark-thing-original-position))))
+          (goto-char upward-mark-thing-original-position)))
+      (message (concat (prin1-to-string thing) "  selected")))
     (when bounds
+      (setq  last-marked-bounds bounds)
       (setq upward-mark-thing-trial (1+ upward-mark-thing-trial))
       (goto-char (car bounds))
       (push-mark (cdr bounds) t 'activate)
@@ -158,7 +173,7 @@
        (thing
         (message "There is no %s here." thing))
        (t
-        (message "Nothing here."))))))  
+        (message "Nothing here."))))))
 
 ;;;###autoload
 (defun kill-region-dwim ()
