@@ -20,6 +20,21 @@
 
 ;;; Commentary:
 
+;; my configuration for thingopt.el
+;; ;;; 用于选中thing的绑定,如选中word line sentence 等
+;; (global-set-key (kbd "C-M-u") 'upward-mark-thing);多次按下效果不同
+;; (global-set-key (kbd "C-M-d") 'kill-thing)
+;; ;;
+;; (defun set-value-for--upward-mark-thing-list(value)
+;;   (make-local-variable 'upward-mark-thing-list)
+;;   (setq upward-mark-thing-list value))
+
+;; ;;(print (list-thing))
+;; (setq-default upward-mark-thing-list  '(word symbol email sexp filename url (up-list . *) buffer))
+;; (add-hook 'c-mode-common-hook '(lambda() (set-value-for--upward-mark-thing-list  '(word symbol email filename url (up-list . *) buffer)) ))
+;; ;; (add-hook 'emacs-lisp-mode-hook '(lambda() (set-value-for--upward-mark-thing-list '(word symbol sexp (up-list . *))) ))
+;; (add-hook 'text-mode-hook '(lambda() (set-value-for--upward-mark-thing-list '(word email filename url sentence paragraph buffer)) ))
+
 ;; TODO documentation
 ;; TODO forward-string by syntax (?)
 
