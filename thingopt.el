@@ -32,9 +32,15 @@
 
 (defvar thing-list-cache nil)
 (defvar upward-mark-thing-index 0)
-(defvar upward-mark-thing-list '(string symbol (up-list . *)))
 (defvar upward-mark-thing-trial 0)
 (defvar upward-mark-thing-original-position)
+
+(defvar upward-mark-thing-list '(string symbol (up-list . *))
+  "List of types of things to mark for `upward-mark-thing'.")
+
+(defvar upward-isearch-thing-list
+  '(email url word symbol string filename)
+  "Like `upward-mark-thing-list', but for `upward-isearch-thing'.")
 
 (defun thingp (thing)
   (or (get thing 'bounds-of-thing-at-point)
@@ -86,40 +92,80 @@
       (push-mark (cdr bounds) nil transient-mark-mode)
       (setq deactivate-mark nil))))
 
-;;;###autoload
-(defun upward-mark-thing ()
+(defun reset-upward-bounds-of-thing ()
+  "Helper function for `upward-bounds-of-thing'."
+  (setq upward-bounds-of-thing-index 0
+        upward-bounds-of-thing-trial 0
+        upward-bounds-of-thing-original-position (point)
+        upward-bounds-of-thing-prev nil))
+
+(defun upward-bounds-of-thing (list-of-things)
+  "Finds the location of the ends of a thing.  LIST-OF-THINGS is
+  a list of types of things.  Repeatedly calling this will take
+  successive types from the list and return the bounds of that
+  thing at point."
   (interactive)
-  (if (not (eq last-command this-command))
-      (setq upward-mark-thing-index 0
-            upward-mark-thing-trial 0
-            upward-mark-thing-original-position (point)))
-  (let ((index upward-mark-thing-index)
-        (length (length upward-mark-thing-list))
+  (let ((len (length list-of-things))
+        (index upward-bounds-of-thing-index)
         bounds)
     (while (and (null bounds)
-                (< index length))
-      (let ((thing (nth index upward-mark-thing-list))
+              (< index len))
+      (let ((thing (nth index list-of-things))
             (limit '*))
         (if (consp thing)
             (setq limit (cdr thing)
                   thing (car thing)))
         (setq bounds (bounds-of-thing-at-point thing))
-        (when (or (null bounds)
-                  (and (not (eq limit '*)) (>= upward-mark-thing-trial limit))
-                  (eq (car bounds) (cdr bounds))
-                  (and mark-active
-                       (eq (car bounds) (point))
-                       (eq (cdr bounds) (mark))))
+        (if (not (or (null bounds)
+                    (and (not (eq limit '*)) (>= upward-bounds-of-thing-trial limit))
+                    (eq (car bounds) (cdr bounds))
+                    (and upward-bounds-of-thing-prev
+                       (equal bounds upward-bounds-of-thing-prev))))
+            (setq upward-bounds-of-thing-name (format "%s" (symbol-name thing)))
           (setq bounds nil
-                index (1+ index)
-                upward-mark-thing-index (1+ upward-mark-thing-index)
-                upward-mark-thing-trial 0)
-          (goto-char upward-mark-thing-original-position))))
+                index (mod (1+ index) len)
+                upward-bounds-of-thing-index (mod (1+ upward-bounds-of-thing-index) len)
+                upward-bounds-of-thing-trial 0)
+          (goto-char upward-bounds-of-thing-original-position))))
     (when bounds
-      (setq upward-mark-thing-trial (1+ upward-mark-thing-trial))
+      (setq upward-bounds-of-thing-trial (1+ upward-bounds-of-thing-trial))
+      (setq upward-bounds-of-thing-prev bounds)
+      bounds)))
+
+;;;###autoload
+(defun upward-mark-thing ()
+  "Marks the first type of thing in `upward-mark-thing-list' at
+point.  When called successively, it marks successive types of
+things in `upward-mark-thing-list'.  It is recommended to put
+smaller things (e.g. word, symbol) before larger
+things (e.g. list, paragraph) in `upward-mark-thing-list'.  When
+this is called enough times to get to the end of the list, it
+wraps back to the first type of thing."
+  (interactive)
+  (unless (eq last-command this-command)
+    (reset-upward-bounds-of-thing))
+  (let ((bounds (upward-bounds-of-thing upward-mark-thing-list)))
+    (when bounds
+      (message "%s" upward-bounds-of-thing-name)
       (goto-char (car bounds))
       (push-mark (cdr bounds) t 'activate)
       (setq deactivate-mark nil))))
+
+;;;###autoload
+(defun upward-isearch-thing ()
+  "Much like `upward-mark-thing', but adds THING to the isearch string.
+This should be invoked while isearch is active.  Clobbers the current isearch string."
+  (interactive)
+  (unless (eq last-command this-command)
+    (reset-upward-bounds-of-thing))
+  (let ((bounds (upward-bounds-of-thing upward-isearch-thing-list)))
+    (when bounds
+      (setq isearch-initial-string (buffer-substring-no-properties
+                                    (car bounds) (cdr bounds)))
+      (setq isearch-string isearch-initial-string
+            isearch-message isearch-initial-string)
+      (isearch-update)
+      (isearch-highlight (car bounds) (cdr bounds)))))
 
 (defun define-thing-commands ()
   (dolist (thing (list-thing))
