@@ -1,8 +1,8 @@
 ;;; thingopt.el --- Thing at Point optional utilities
 
-;; Copyright (C) 2008, 2009, 2010, 2011  Tomohiro Matsuyama
+;; Copyright (C) 2008-2015  Tomohiro Matsuyama
 
-;; Author: Tomohiro Matsuyama <tomo@cx4a.org>
+;; Author: Tomohiro Matsuyama <m2ym.pub@gmail.com>
 ;; Keywords: convenience
 
 ;; This program is free software; you can redistribute it and/or modify
