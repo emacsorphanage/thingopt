@@ -209,12 +209,12 @@ This should be invoked while isearch is active.  Clobbers the current isearch st
 ;;;###autoload
 (defun kill-region-dwim ()
   (interactive)
-  (kill-region-dwim-1 'kill-region))
+  (kill-region-dwim-1 #'kill-region))
 
 ;;;###autoload
 (defun kill-ring-save-dwim ()
   (interactive)
-  (kill-region-dwim-1 'kill-ring-save))
+  (kill-region-dwim-1 #'kill-ring-save))
 
 (defun string-face-p (face)
   (let (result)
